@@ -1,21 +1,21 @@
 /* $Id$ */
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <gd.h>
 #include <sys/types.h>
+
+#include <gd.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 #define TRUE  1
 #define FALSE 0
 
-typedef gdImagePtr (*INIT_FUNC)(FILE *);
+typedef gdImagePtr (*init)(FILE *);
 
-void die(char *fmt, ...);
-void usage();
+void usage(void);
 
 struct ext_map {
 	char *ext;
-	INIT_FUNC init;
+	init init;
 } map[] = {
 	{ ".jpg",  gdImageCreateFromJpeg },
 	{ ".jpeg", gdImageCreateFromJpeg },
@@ -23,52 +23,50 @@ struct ext_map {
 	{ NULL,    NULL },
 };
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-	gdImagePtr img;
+	int width, height, prev_pixel, pixel, x, y, ch;
+	char *img_file, *text_file, *html_file, *ep;
 	FILE *img_fp, *text_fp, *html_fp;
-	char * img_file, *text_file, *html_file;
-	int width, height, prev_pixel,
-	    pixel, x, y, ch;
-	INIT_FUNC img_init;
 	struct ext_map *iter;
+	init img_init;
+	gdImagePtr img;
 
-	/* Check arguments */
 	if (argc != 3)
 		usage();
 
 	img_file  = argv[1];
 	text_file = argv[2];
 
-	/* Determine file type */
+	/* Determine file type. */
 	img_init = NULL;
-	for (iter = map; iter->ext != NULL; iter++) {
-		if (strcasecmp(img_file + strlen(img_file) - strlen(iter->ext), iter->ext) == 0) {
+	ep = img_file + strlen(img_file);
+	for (iter = map; iter->ext != NULL; iter++)
+		if (strcasecmp(ep - strlen(iter->ext), iter->ext) == 0) {
 			img_init = iter->init;
 			break;
 		}
-	}
 
 	if (img_init == NULL)
-		die("Unknown filetype");
+		errx("%s: unsupported image type", img_file);
 
-	/* Gather image data */
+	/* Gather image data. */
 	img_fp = fopen(img_file, "rb");
 	if (img_fp == NULL)
-		die("Cannot open image file");
+		err(1, "open %s", img_file);
 	img = (*img_init)(img_fp);
 	fclose(img_fp);
 
 	if (img == NULL)
-		die("Malformed image file");
+		errx(1, "%s: malformed image", img_file);
 
 	width	= gdImageSX(img);
 	height	= gdImageSY(img);
 
-	/* Start gathering text data */
-	text_fp = fopen(text_file, "r");
-	if (text_fp == NULL)
-		die("Cannot open text file");
+	/* Start gathering text data. */
+	if ((text_fp = fopen(text_file, "r")) == NULL)
+		err(1, "open %s", text_file);
 
 	/*
 	 * Loop from top left to the bottom right.
@@ -76,18 +74,15 @@ int main(int argc, char *argv[])
 	 * compare the next pixel against this color
 	 * to reduce HTML output.
 	 */
-	for (y = 1; y <= height; y++)
-	{
-		for (x = 1; x <= width; x++)
-		{
+	for (y = 1; y <= height; y++) {
+		for (x = 1; x <= width; x++) {
 			pixel = gdImageGetPixel(img, x, y);
 			ch = fgetc(text_fp);
 
 			if (prev_pixel &&
 			    img->red[prev_pixel]   == img->red[pixel]   &&
 			    img->green[prev_pixel] == img->green[pixel] &&
-			    img->blue[prev_pixel]  == img->blue[pixel])
-			{
+			    img->blue[prev_pixel]  == img->blue[pixel]) {
 				ch == '\n' ? printf("<br>") : printf("%c", ch);
 			} else {
 				if (prev_pixel)
@@ -111,36 +106,21 @@ int main(int argc, char *argv[])
 	 */
 	if (img->red[pixel]   == img->red[prev_pixel]   &&
 	    img->green[pixel] == img->green[prev_pixel] &&
-	    img->blue[pixel]  == img->blue[prev_pixel]
-	)
+	    img->blue[pixel]  == img->blue[prev_pixel])
 		printf("</font>");
 
 	gdImageDestroy(img);
 
-	return 0;
+	return (0);
 }
 
-void die(char *fmt, ...)
-{
-	va_list p;
-	extern int errno;
-	
-	va_start(p, fmt);
-	vfprintf(stderr, fmt, p);
-	va_end(p);
-
-	if (errno)
-		perror(NULL);
-
-	exit(1);
-}
-
-void usage()
+void
+usage(void)
 {
 	extern char *__progname;
 
 	fprintf(stderr,
-		"Usage: %s <image file> <text file>\n\n"
+		"usage: %s <image file> <text file>\n\n"
 		"<image file> can be either a JPEG or a PNG\n"
 		"graphics file, detectable by an appropriate\n"
 		"file extension.\n"
@@ -148,6 +128,5 @@ void usage()
 		"The resulting HTML output is printed through\n"
 		"standard output.\n"
 		"\n", __progname);
-
 	exit(0);
 }

@@ -5,11 +5,9 @@ CFLAGS = -I/usr/local/include
 LIBS = -lgd -ljpeg -L/usr/local/lib
 
 .c:
-	cc -o $(TARGET) $< $(CFLAGS) $(LIBS)
+	cc -o ${TARGET} ${CFLAGS} ${LIBS} ${.IMPSRC}
 	
-all: $(TARGET)
-
-$(TARGET): $(TARGET).c
+all: ${TARGET}
 
 clean:
-	rm -f $(TARGET)
+	rm -f ${TARGET}

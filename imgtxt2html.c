@@ -1,15 +1,4 @@
-/*
- * By Jared Yanovich <jaredy@closeedge.net>
- *
- * Sunday, July 14, 2002 04:19:26 PM
- *
- * imgtxt2html - outputs HTML-based font coloring
- * based on an argued image (JPEG or PNG) input
- * file.
- *
- * Usage: imgtxt2html <image file> <text file>
- * HTML output is put through standard output.
- */
+/* $Id$ */
 
 #include <stdio.h>
 #include <gd.h>
@@ -46,10 +35,10 @@ int main(int argc,char *argv[])
 	if (argc != 3)
 		usage("",1);
 
-	strlcpy(f_img,argv[1],sizeof(f_img));
-	strlcpy(f_txt,argv[2],sizeof(f_txt));
+	strlcpy(f_img,argv[1], sizeof f_img);
+	strlcpy(f_txt,argv[2], sizeof f_txt);
 
-	txt_fd = fopen(f_txt,"r");	/* open text file to read from */
+	txt_fd = fopen(f_txt, "r");
 
 	if (!txt_fd)
 		die("Cannot open text file");
@@ -66,29 +55,29 @@ int main(int argc,char *argv[])
 		char t[BUFSIZ];
 		regex_t pat;
 
-		ret = regcomp(&pat,"[.]jpe?g$",REG_ICASE | REG_EXTENDED);
+		ret = regcomp(&pat, "[.]jpe?g$", REG_ICASE | REG_EXTENDED);
 
-		if (!(ret = regexec(&pat,f_img,0,NULL,0)))
+		if ((ret = regexec(&pat, f_img, 0, NULL, 0)) == 0)
 		{
 			img_type = IMG_TYPE_JPG;
 
 			break;
 		}
 
-		ret = regcomp(&pat,"[.]png$",REG_ICASE | REG_EXTENDED);
+		ret = regcomp(&pat, "[.]png$", REG_ICASE | REG_EXTENDED);
 
-		if (!(ret = regexec(&pat,f_img,0,NULL,0)))
+		if ((ret = regexec(&pat, f_img, 0, NULL, 0)) == 0)
 		{
 			img_type = IMG_TYPE_PNG;
 
 			break;
 		}
 
-		usage("Invalid filename extension",1);
+		usage("Invalid filename extension", 1);
 
 	} while (0);
 
-	img_fd = fopen(f_img,"rb");
+	img_fd = fopen(f_img, "rb");
 
 	if (!img_fd)
 		die("Cannot open image file");
@@ -106,29 +95,23 @@ int main(int argc,char *argv[])
 		for (x = 1; x <= width; x++)
 		{
 
-			pixel	= gdImageGetPixel(img,x,y);
+			pixel	= gdImageGetPixel(img, x, y);
 			ch	= fgetc(txt_fd);
 
-			if
-			(
-					prev_pixel
-				&&	img->red[prev_pixel]	== img->red[pixel]
-				&&	img->green[prev_pixel]	== img->green[pixel]
-				&&	img->blue[prev_pixel]	== img->blue[pixel]
-			)
+			if (prev_pixel
+				&& img->red[prev_pixel]	  == img->red[pixel]
+				&& img->green[prev_pixel] == img->green[pixel]
+				&& img->blue[prev_pixel]  == img->blue[pixel])
 			{
-				ch == '\n' ? printf("<br>") : printf("%c",ch);
+				ch == '\n' ? printf("<br>") : printf("%c", ch);
 			} else {
 				if (prev_pixel)
 					printf("</font>");
 
-				printf
-				(
-					"<font style=\"background-color:#%x%x%x\">",
+				printf("<font style=\"background-color:#%x%x%x\">",
 					img->red[pixel],
 					img->green[pixel],
-					img->blue[pixel]
-				);
+					img->blue[pixel]);
 
 				ch == '\n' ? printf("<br>") : printf("%c",ch);
 
@@ -137,11 +120,9 @@ int main(int argc,char *argv[])
 		}
 	}
 
-	if
-	(
-			img->red[pixel]		== img->red[prev_pixel]
-		&&	img->green[pixel]	== img->green[prev_pixel]
-		&&	img->blue[pixel]	== img->blue[prev_pixel]
+	if (	   img->red[pixel]   == img->red[prev_pixel]
+		&& img->green[pixel] == img->green[prev_pixel]
+		&& img->blue[pixel]  == img->blue[prev_pixel]
 	)
 		printf("</font>");
 
@@ -160,25 +141,22 @@ void die(char *msg)
 void usage(char *msg,int status)
 {
 	if (strlen(msg))
-		fprintf(stderr,"Error: %s\n",msg);
+		fprintf(stderr, "Error: %s\n", msg);
 
-	fprintf
-	(
-		stderr,
+	fprintf(stderr,
 		"Usage: imgtxt2html <image file> <text file>\n\n"
 		"<image file> can be either a JPEG or a PNG\n"
 		"graphics file, detectable by an appropriate\n"
 		"file extension.\n\n"
 		"The resulting HTML output is printed through\n"
-		"standard output.\n\n"
-	);
+		"standard output.\n\n");
 
 	exit(status);
 }
 
 void report(char *msg)
 {
-	fprintf(stderr,"[DEBUG] %s\n",msg);
+	fprintf(stderr, "[DEBUG] %s\n", msg);
 
 	return;
 }
